@@ -45,6 +45,7 @@
     Body = 'Hello World!'       b'Hello World!'
 
     Bytes = b'\x00\x01\x00\x04\x00\x00\x00\x0c\x00\xc0\x00\xa8\x00\x01\x00\x01\x00\x00\xfd\xe8Hello World!'
+    Bytes = b'\x00\x01\x00\x04\x00\x00\x00\x0c\x00\xc0\x00\xa8\x00\x01\x00\x01\x00\x00\xfd\xe8Hello World!'
 
 
 
@@ -179,15 +180,43 @@
 """
 from struct import *
 
+import struct
+
+from src.tools.Node import Node
+
 
 class Packet:
-    def __init__(self, buf):
+
+    def __init__(self, buf=None, version=None, type=None, length=None, source_server_ip=None, source_server_port=None,
+                 body=None):
         """
         The decoded buffer should convert to a new packet.
 
         :param buf: Input buffer was just decoded.
-        :type buf: bytearray
+        :type buf: bytes
         """
+        if buf is not None:
+            self.buf = buf
+            data = struct.unpack('!hhl4hl', bytes(buf[:20]))
+            self.version = data[0]
+            self.type = data[1]
+            self.length = data[2]
+            ip_str_list = [chr(i) for i in data[3:7]]
+            ip_str = ip_str_list[0] + '.' + ip_str_list[1] + '.' + ip_str_list[2] + '.' + ip_str_list[3]
+            self.source_server_ip = Node.parse_ip(ip_str)
+            self.source_server_port = Node.parse_port(str(data[7]))
+            rest = struct.unpack('%dB' % len(buf[20:]), buf[20:])
+            self.body = ''.join(chr(i) for i in rest)
+        else:
+            self.version = version
+            self.type = type
+            self.length = length
+            self.source_server_ip = source_server_ip
+            self.source_server_port = source_server_port
+            self.body = body
+            ip_int_list = list(map(int, self.source_server_ip.split('.')))
+            self.buf = struct.pack('!hhl4hl%dB' % len(body), version, type, length, *ip_int_list,
+                                   int(source_server_port), *bytes(body, 'utf-8'))
         pass
 
     def get_header(self):
@@ -196,6 +225,7 @@ class Packet:
         :return: Packet header
         :rtype: str
         """
+        # FIXME What should we return here?
         pass
 
     def get_version(self):
@@ -204,6 +234,7 @@ class Packet:
         :return: Packet Version
         :rtype: int
         """
+        return self.version
         pass
 
     def get_type(self):
@@ -212,6 +243,7 @@ class Packet:
         :return: Packet type
         :rtype: int
         """
+        return self.type
         pass
 
     def get_length(self):
@@ -220,6 +252,7 @@ class Packet:
         :return: Packet length
         :rtype: int
         """
+        return self.length
         pass
 
     def get_body(self):
@@ -228,6 +261,7 @@ class Packet:
         :return: Packet body
         :rtype: str
         """
+        return self.body
         pass
 
     def get_buf(self):
@@ -237,6 +271,7 @@ class Packet:
         :return The parsed packet to the network format.
         :rtype: bytearray
         """
+        return self.buf
         pass
 
     def get_source_server_ip(self):
@@ -245,6 +280,7 @@ class Packet:
         :return: Server IP address for the sender of the packet.
         :rtype: str
         """
+        return self.source_server_ip
         pass
 
     def get_source_server_port(self):
@@ -253,6 +289,7 @@ class Packet:
         :return: Server Port address for the sender of the packet.
         :rtype: str
         """
+        return self.source_server_port
         pass
 
     def get_source_server_address(self):
@@ -261,6 +298,7 @@ class Packet:
         :return: Server address; The format is like ('192.168.001.001', '05335').
         :rtype: tuple
         """
+        return self.source_server_ip, self.source_server_port
         pass
 
 
@@ -280,6 +318,7 @@ class PacketFactory:
         :rtype Packet
 
         """
+        return Packet(buf=buffer)
         pass
 
     @staticmethod
@@ -296,6 +335,7 @@ class PacketFactory:
         :return New reunion packet.
         :rtype Packet
         """
+
         pass
 
     @staticmethod

@@ -18,8 +18,8 @@ class Stream:
         :param port: 5 characters
         """
 
-        ip = Node.parse_ip(ip)
-        port = Node.parse_port(port)
+        self.ip = Node.parse_ip(ip)
+        self.port = Node.parse_port(port)
 
         self._server_in_buf = []
 
@@ -35,6 +35,10 @@ class Stream:
             queue.put(bytes('ACK', 'utf8'))
             self._server_in_buf.append(data)
 
+        self.tcp_server = TCPServer(self.ip, int(self.port), callback)
+        self.tcp_server.run()
+
+        self.nodes = []
         pass
 
     def get_server_address(self):
@@ -43,7 +47,7 @@ class Stream:
         :return: Our TCPServer address
         :rtype: tuple
         """
-        pass
+        return self.ip, self.port
 
     def clear_in_buff(self):
         """
@@ -65,6 +69,12 @@ class Stream:
 
         :return:
         """
+        # FIXME when should a node be marked as root?
+        try:
+            new_node = Node(server_address, set_register=set_register_connection)
+        except ConnectionRefusedError:
+            return
+        self.nodes.append(new_node)
         pass
 
     def remove_node(self, node):
@@ -79,6 +89,8 @@ class Stream:
 
         :return:
         """
+        self.nodes.remove(node)
+        node.close()
         pass
 
     def get_node_by_server(self, ip, port):
@@ -95,6 +107,14 @@ class Stream:
         :return: The node that input address.
         :rtype: Node
         """
+        p_ip = Node.parse_ip(ip)
+        p_port = Node.parse_port(port)
+        the_node = None
+        for node in self.nodes:
+            if node.server_ip == p_ip and node.server_port == p_port:
+                the_node = node
+                break
+        return the_node
         pass
 
     def add_message_to_out_buff(self, address, message):
@@ -110,6 +130,8 @@ class Stream:
 
         :return:
         """
+        node = self.get_node_by_server(address[0], address[1])
+        node.add_message_to_out_buff(message)
         pass
 
     def read_in_buf(self):
@@ -134,6 +156,13 @@ class Stream:
 
         :return:
         """
+        try:
+            node.send_message()
+        except RuntimeError:
+            self.remove_node(node)
+        except ValueError:
+            # FIXME might wanna do sth
+            pass
         pass
 
     def send_out_buf_messages(self, only_register=False):
@@ -142,4 +171,11 @@ class Stream:
 
         :return:
         """
+        if only_register:
+            for node in self.nodes:
+                if node.is_register:
+                    self.send_messages_to_node(node)
+        else:
+            for node in self.nodes:
+                self.send_messages_to_node(node)
         pass

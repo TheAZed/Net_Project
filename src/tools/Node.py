@@ -19,10 +19,18 @@ class Node:
         """
         self.server_ip = Node.parse_ip(server_address[0])
         self.server_port = Node.parse_port(server_address[1])
+        self.is_register = set_register
+        self.is_root = set_root
 
         print("Server Address: ", server_address)
 
         self.out_buff = []
+        # FIXME should we make any non-single_use sockets?
+        try:
+            self.client = ClientSocket(self.server_ip, int(self.server_port), single_use=False)
+        except:
+            raise ConnectionRefusedError
+
         pass
 
     def send_message(self):
@@ -31,6 +39,10 @@ class Node:
 
         :return:
         """
+        for msg in self.out_buff:
+            self.client.send(msg)
+        # FIXME the buffer might not need to be emptied
+        self.out_buff.clear()
         pass
 
     def add_message_to_out_buff(self, message):
