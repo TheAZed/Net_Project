@@ -16,18 +16,20 @@ import threading
 
 class Peer:
     def __init__(self, server_ip, server_port, is_root=False, root_address=None):
+
+
         """
         The Peer object constructor.
 
         Code design suggestions:
             1. Initialise a Stream object for our Peer.
             2. Initialise a PacketFactory object.
-            3. Initialise our UserInterface for interaction with user commandline.
-            4. Initialise a Thread for handling reunion daemon.
+            3. Initialise our UserInterface for interaction with user commandline.@@@@@@@
+            4. Initialise a Thread for handling reunion daemon.@@@@@@@@
 
         Warnings:
-            1. For root Peer, we need a NetworkGraph object.
-            2. In root Peer, start reunion daemon as soon as possible.
+            1. For root Peer, we need a NetworkGraph object.@@@@@@@@@@@
+            2. In root Peer, start reunion daemon as soon as possible.@@@@@@@@@@@
             3. In client Peer, we need to connect to the root of the network, Don't forget to set this connection
                as a register_connection.
 
@@ -42,6 +44,19 @@ class Peer:
         :type is_root: bool
         :type root_address: tuple
         """
+
+        self.server_ip=server_ip
+        self.server_port=server_port
+        self.is_root=is_root
+        self.root_address=root_address
+        self.stream = Stream(ip=server_ip, port=server_port)
+        self.user_interface = UserInterface()
+
+        self.life=True  #   while self.life : run
+        self.counter=0  #   when to send in run
+
+
+
         pass
 
     def start_user_interface(self):
@@ -85,6 +100,35 @@ class Peer:
 
         :return:
         """
+
+        while (self.life):
+
+            self.buffs=self.stream.read_in_buf()
+            self.packs=[]
+
+            for i in range(len(self.buffs)):
+                self.packs.append( PacketFactory.parse_buffer(self.buffs[i])   )
+
+            for i in range(len(self.buffs)):
+                self.handle_packet(self.packs[i])
+
+            self.stream.clear_in_buff()
+
+            if self.counter==1:
+
+                self.stream.send_out_buf_messages()
+                self.counter=0
+
+            else:
+                self.counter=1
+
+            time.sleep(2)
+
+
+
+
+
+
         pass
 
     def run_reunion_daemon(self):
@@ -142,6 +186,27 @@ class Peer:
         :type packet Packet
 
         """
+
+        ########packet validation :
+
+
+
+        if packet.type==1 :
+            self.__handle_register_packet(packet)
+
+        if packet.type==2 :
+            self.__handle_advertise_packet(packet)
+
+        if packet.type==3 :
+            self.__handle_join_packet(packet)
+
+        if packet.type==4 :
+            self.__handle_message_packet(packet)
+
+        if packet.type==5 :
+            self.handle_packet()
+
+
         pass
 
     def __check_registered(self, source_address):

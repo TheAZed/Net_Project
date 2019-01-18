@@ -167,7 +167,7 @@ class Stream:
 
     def send_out_buf_messages(self, only_register=False):
         """
-        In this function, we will send hole out buffers to their own clients.
+        In this function, we will send whole out buffers to their own clients.
 
         :return:
         """
