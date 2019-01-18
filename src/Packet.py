@@ -335,14 +335,25 @@ class PacketFactory:
         :return New reunion packet.
         :rtype Packet
         """
-
+        packet_body = ''
+        packet_body += type
+        packet_body += str(len(nodes_array))
+        for address in nodes_array:
+            packet_body += Node.parse_ip(address[0])
+            packet_body += Node.parse_port(address[1])
+        packet = None
+        if type == 'REQ' or type == 'RES':
+            packet = Packet(None, 1, 5, 5 + 20 * len(nodes_array), source_address[0], source_address[1], packet_body)
+        else:
+            print("Invalid Reunion Packet Type!")
+        return packet
         pass
 
     @staticmethod
     def new_advertise_packet(type, source_server_address, neighbour=None):
         """
-        :param type: Type of Advertise packet
-        :param source_server_address Server address of the packet sender.
+        :param type: Type of Advertise packet - Either 'REQ' or 'RES'
+        :param source_server_address: Server address of the packet sender.
         :param neighbour: The neighbour for advertise response packet; The format is like ('192.168.001.001', '05335').
 
         :type type: str
@@ -353,6 +364,17 @@ class PacketFactory:
         :rtype Packet
 
         """
+        packet_body = ''
+        packet_body += type
+        packet = None
+        if type == 'REQ':
+            packet = Packet(None, 1, 2, 3, source_server_address[0], source_server_address[1], packet_body)
+        elif type == 'RES':
+            packet_body += neighbour[0] + neighbour[1]
+            packet = Packet(None, 1, 2, 23, source_server_address[0], source_server_address[1], packet_body)
+        else:
+            print("Invalid Advertise Packet Type!")
+        return packet
         pass
 
     @staticmethod
@@ -366,12 +388,14 @@ class PacketFactory:
         :rtype Packet
 
         """
+        packet = Packet(None, 1, 3, 4, source_server_address[0], source_server_address[1], 'JOIN')
+        return packet
         pass
 
     @staticmethod
     def new_register_packet(type, source_server_address, address=(None, None)):
         """
-        :param type: Type of Register packet
+        :param type: Type of Register packet - Either 'REQ' or 'RES'
         :param source_server_address: Server address of the packet sender.
         :param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
 
@@ -383,6 +407,18 @@ class PacketFactory:
         :rtype Packet
 
         """
+        packet_body = ''
+        packet_body += type
+        packet = None
+        if type == 'REQ':
+            packet_body = packet_body + source_server_address[0] + source_server_address[1]
+            packet = Packet(None, 1, 1, 23, source_server_address[0], source_server_address[1], packet_body)
+        elif type == 'RES':
+            packet_body += 'ACK'
+            packet = Packet(None, 1, 1, 6, source_server_address[0], source_server_address[1], packet_body)
+        else:
+            print("Invalid Register Packet Type!")
+        return packet
         pass
 
     @staticmethod
@@ -399,4 +435,6 @@ class PacketFactory:
         :return New Message packet.
         :rtype Packet
         """
+        packet = Packet(None, 1, 4, len(message), source_server_address[0], source_server_address[1], message)
+        return packet
         pass
