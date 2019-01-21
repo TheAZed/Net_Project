@@ -1,10 +1,9 @@
 from src.Stream import Stream
 from src.Packet import Packet, PacketFactory
 from src.UserInterface import UserInterface
-from src.tools.SemiNode import SemiNode
 from src.tools.NetworkGraph import NetworkGraph, GraphNode
 import time
-import threading
+import copy
 
 """
     Peer is our main object in this project.
@@ -15,8 +14,8 @@ import threading
 
 
 class Peer:
-    def __init__(self, server_ip, server_port, is_root=False, root_address=None):
 
+    def __init__(self, server_ip, server_port, is_root=False, root_address=None):
 
         """
         The Peer object constructor.
@@ -44,22 +43,42 @@ class Peer:
         :type is_root: bool
         :type root_address: tuple
         """
+        self.time_out = 40
+        self.user_interface = UserInterface()
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.is_root = is_root
 
-        self.server_ip=server_ip
-        self.server_port=server_port
-        self.is_root=is_root
-        self.root_address=root_address
         self.stream = Stream(ip=server_ip, port=server_port)
         self.user_interface = UserInterface()
+        self.registered = False
+        self.state = 'newborn'
 
-        self.life=True  #   while self.life : run
-        self.counter=0  #   when to send in run
+        self.life = False  # while self.life : run
+        self.counter = 0  # when to send in run
+        self.parent_address = None
+        self.left_child = None
+        self.right_child = None
+        self.reunion_onfly = False
+        self.connection_timer=None
 
+        if self.is_root:
 
+            self.graph_node = GraphNode(address=(self.server_ip, server_port))
+            self.network_graph = NetworkGraph(root=self.graph_node)
+            self.root_ip = server_ip
+            self.root_port = server_port
 
+        else:
+            self.root_ip = root_address[0]
+            self.root_port = root_address[1]
+
+        self.start_user_interface()
         pass
 
     def start_user_interface(self):
+        self.user_interface.start()
+
         """
         For starting UserInterface thread.
 
@@ -82,6 +101,14 @@ class Peer:
         """
         pass
 
+    def client_start(self):
+
+        self.life = True
+        self.stream.add_node(server_address=self.get_root_address(), set_register_connection=True)
+        self.stream.add_message_to_out_buff(address=self.get_root_address(),
+                                            message=PacketFactory.new_register_packet(
+                                                source_server_address=(self.server_ip, self.server_port), type='REQ'))
+
     def run(self):
         """
         The main loop of the program.
@@ -101,33 +128,59 @@ class Peer:
         :return:
         """
 
-        while (self.life):
+        while self.life:
 
-            self.buffs=self.stream.read_in_buf()
-            self.packs=[]
+            if self.is_root:
+                addresses = copy.deepcopy(self.network_graph.nodes.keys(self))
+                for key in addresses:
+                    if self.network_graph.nodes.keys().__contains__(key) \
+                            and self.network_graph.nodes[key].reunion_timer > self.time_out:
+                        self.network_graph.remove_node(node_address=self.network_graph.nodes[key].address)
 
-            for i in range(len(self.buffs)):
-                self.packs.append( PacketFactory.parse_buffer(self.buffs[i])   )
+            if not self.is_root and self.connection_timer > self.time_out:
+                self.parent_address = None
+                self.left_child = None
+                self.right_child = None
+                self.connection_timer = None
+                self.state = 'newborn'
+                # self.stream=None
 
-            for i in range(len(self.buffs)):
-                self.handle_packet(self.packs[i])
+            if self.counter == 2 or self.counter == 0:
 
-            self.stream.clear_in_buff()
+                buffs = self.stream.read_in_buf()
+                packs = []
 
-            if self.counter==1:
+                for i in range(len(buffs)):
+                    packs.append(PacketFactory.parse_buffer(buffs[i]))
 
-                self.stream.send_out_buf_messages()
+                for i in range(len(buffs)):
+                    self.handle_packet(packs[i])
+
+
+                if not self.is_root and self.state=='joined' and self.connection_timer >= 0 and self.reunion_onfly == False:
+                    self.send_reunion_client()
+
+
+                self.stream.clear_in_buff()
+
+
+
+
+
+            self.stream.send_out_buf_messages()
+
+            self.counter += 1
+            if self.counter==4:
                 self.counter=0
 
-            else:
-                self.counter=1
+            if self.connection_timer is not None:
+                self.connection_timer += 1
 
-            time.sleep(2)
+            if self.is_root:
+                for kk in self.network_graph.nodes.keys(self):
+                    self.network_graph.nodes[kk].reunion_timer += 1
 
-
-
-
-
+            time.sleep(1)
 
         pass
 
@@ -158,7 +211,16 @@ class Peer:
         """
         pass
 
-    def send_broadcast_packet(self, broadcast_packet):
+    def send_reunion_client(self):
+
+        self.connection_timer = 0
+        self.reunion_onfly = True
+        ms = PacketFactory.new_reunion_packet(type='REQ', source_address=(self.server_ip, self.server_port),
+                                              nodes_array=[(self.server_ip, self.server_port)])
+        self.stream.add_message_to_out_buff(self, address=self.parent_address, message=ms)
+
+
+    def send_broadcast_packet(self,message):
         """
 
         For setting broadcast packets buffer into Nodes out_buff.
@@ -171,6 +233,10 @@ class Peer:
 
         :return:
         """
+
+        # FIXME naneveshtam
+
+
         pass
 
     def handle_packet(self, packet):
@@ -189,35 +255,35 @@ class Peer:
 
         ########packet validation :
 
-
-
-        if packet.type==1 :
+        if packet.type == 1:
             self.__handle_register_packet(packet)
 
-        if packet.type==2 :
+        if packet.type == 2:
             self.__handle_advertise_packet(packet)
 
-        if packet.type==3 :
+        if packet.type == 3:
             self.__handle_join_packet(packet)
 
-        if packet.type==4 :
+        if packet.type == 4:
             self.__handle_message_packet(packet)
 
-        if packet.type==5 :
-            self.handle_packet()
-
+        if packet.type == 5:
+            self.__handle_reunion_packet(packet)
 
         pass
 
     def __check_registered(self, source_address):
         """
-        If the Peer is the root of the network we need to find that is a node registered or not.
+        If the Peer is the root of the network we need to find that if a node registered or not.
 
         :param source_address: Unknown IP/Port address.
         :type source_address: tuple
 
         :return:
         """
+
+        # FIXME in tabe daghighan chie
+
         pass
 
     def __handle_advertise_packet(self, packet):
@@ -249,6 +315,34 @@ class Peer:
 
         :return:
         """
+
+        if (self.is_root and packet.get_body()[0:3] == 'REQ'):
+
+            #FIXME check kon ke nabashe too graph
+            father = self.network_graph.find_live_node()
+
+            self.network_graph.add_node(ip=packet.get_source_server_address()[0],port=packet.get_source_server_address()[1], father_address=father.address)
+
+            message = PacketFactory.new_advertise_packet(type='RES',source_server_address=(self.server_ip,self.server_port),neighbour=(father.address[0]+father.address[1]))
+
+            self.stream.add_message_to_out_buff(address=packet.get_source_server_address(),message=message.get_buf())
+
+            self.stream.remove_node(node=self.stream.get_node_by_server(ip=packet.get_source_server_ip(),port=packet.get_source_server_port()))
+            #FIXME khaje goft server she root !!!!
+
+        if (not self.is_root and self.state == 'registered' and packet.get_body()[0:3] == 'RES'):
+
+            self.state = 'advertised'
+            self.stream.add_node(server_address=(packet.get_body()[3:18], packet.get_body()[18:23]),set_register_connection=False)
+
+            out_packet=PacketFactory.new_join_packet(source_server_address=(self.server_ip, self.server_port))
+            self.stream.add_message_to_out_buff(address=(packet.get_body()[3:18], packet.get_body()[18:23]),message=out_packet.get_buf())
+
+            self.parent_address = (packet.get_body()[3:18], packet.get_body()[18:23])
+            self.state = 'joined'
+            self.connection_timer=0
+            #FIXME khaje gharardad
+
         pass
 
     def __handle_register_packet(self, packet):
@@ -266,6 +360,17 @@ class Peer:
         :type packet Packet
         :return:
         """
+
+        if (self.is_root and packet.get_body()[0:3] == 'REQ'):
+            self.stream.add_node(server_address=packet.get_source_server_address(), set_register_connection=True)
+            out_packet=PacketFactory.new_register_packet(type='RES',source_server_address=(self.server_ip,self.server_port))
+            self.stream.add_message_to_out_buff(address=packet.get_source_server_address(),message=out_packet.get_buf())
+
+        if (not self.is_root and self.state == 'newborn' and packet.get_body()[0:3] == 'RES'):
+            self.state = 'registered'
+            out_packet=PacketFactory.new_advertise_packet(type='REQ',source_server_address=(self.server_ip,self.server_port))
+            self.stream.add_message_to_out_buff(address=self.get_root_address(),message=out_packet.get_buf())
+
         pass
 
     def __check_neighbour(self, address):
@@ -279,6 +384,9 @@ class Peer:
         :return: Whether is address in our neighbours or not.
         :rtype: bool
         """
+
+        # FIXME in tabe daghighan chie
+
         pass
 
     def __handle_message_packet(self, packet):
@@ -320,6 +428,54 @@ class Peer:
         :param packet: Arrived reunion packet
         :return:
         """
+
+        body=packet.get_body()
+
+        if self.is_root and body[0:3] == 'REQ':
+
+            node_list = []
+            for i in range(int(body[3:5])):
+                node_list.append((body[5 + 20 * i:20 + 20 * i], body[20 + 20 * i:25 + 20 * i]))
+
+            node_list.reverse()
+
+            ms = PacketFactory.new_reunion_packet(source_address=self.get_root_address(), type='RES',nodes_array=node_list).get_buf()
+            self.stream.add_message_to_out_buff(address=packet.get_source_server_address(), message=ms)
+
+        if not self.is_root and packet.type == 'REQ':
+
+            node_list = []
+            for i in range(int(body[3:5])):
+                node_list.append((body[5 + 20 * i:20 + 20 * i], body[20 + 20 * i:25 + 20 * i]))
+
+            node_list.append((self.server_ip,self.server_port))
+
+            ms = PacketFactory.new_reunion_packet(source_address=packet.get_source_server_address(), type='REQ',nodes_array=node_list).get_buf()
+            self.stream.add_message_to_out_buff(address=self.parent_address, message=ms)
+
+        if not self.is_root and packet.type == 'RES':
+            if int(body[3:5]) == 1:
+                self.connection_timer = -4
+                self.reunion_onfly = False
+
+            else:
+
+                node_list = []
+                for i in range(1, int(body[3:5])):
+                    node_list.append((body[5 + 20 * i:20 + 20 * i],body[20 + 20 * i:25 + 20 * i]))
+
+                ms = PacketFactory.new_reunion_packet(source_address=packet.get_source_server_address(),
+                                                      type='RES', nodes_array=node_list).get_buf()
+
+                if self.left_child is not None and body[5:20] == self.left_child[0] and body[20:25] == self.left_child[1]:
+                    self.stream.add_message_to_out_buff(address=self.left_child, message=ms)
+
+                elif self.right_child is not None and body[5:20] == self.right_child[0] and body[20:25] == self.right_child[1]:
+                    self.stream.add_message_to_out_buff(address=self.right_child, message=ms)
+
+                else:
+                    print("Invalid reunion res packet 発見しました ")
+
         pass
 
     def __handle_join_packet(self, packet):
@@ -334,6 +490,13 @@ class Peer:
 
         :return:
         """
+
+        self.stream.add_node(server_address=packet.get_source_server_address(), set_register_connection=False)
+
+        if (self.left_child is None):
+            self.left_child = packet.get_source_server_address()
+        elif self.right_child is None:
+            self.right_child = packet.get_source_server_address()
         pass
 
     def __get_neighbour(self, sender):
@@ -347,4 +510,18 @@ class Peer:
         :param sender: Sender of the packet
         :return: The specified neighbour for the sender; The format is like ('192.168.001.001', '05335').
         """
+
+        return self.network_graph.find_live_node().address
+
+        # FIXME tabe network_graph.find_live_nodes bayad eslah she
+
         pass
+
+    def get_root_address(self):
+        return (self.root_ip, self.root_port)
+
+    def get_root_ip(self):
+        return self.root_ip
+
+    def get_root_port(self):
+        return self.root_port

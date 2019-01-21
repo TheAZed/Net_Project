@@ -337,7 +337,7 @@ class PacketFactory:
         """
         packet_body = ''
         packet_body += type
-        packet_body += str(len(nodes_array))
+        packet_body += str(len(nodes_array)).zfill(width=2)
         for address in nodes_array:
             packet_body += Node.parse_ip(address[0])
             packet_body += Node.parse_port(address[1])
@@ -364,9 +364,12 @@ class PacketFactory:
         :rtype Packet
 
         """
-        packet_body = ''
-        packet_body += type
+
+        packet_body = type
+
+        #packet_body=type+packet_body
         packet = None
+
         if type == 'REQ':
             packet = Packet(None, 1, 2, 3, source_server_address[0], source_server_address[1], packet_body)
         elif type == 'RES':

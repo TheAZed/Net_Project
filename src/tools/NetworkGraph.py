@@ -1,39 +1,57 @@
 import time
 
+import collections
+
 
 class GraphNode:
     def __init__(self, address):
-        """
+        self.address=address
+        self.parent=None
+        self.left_child=None
+        self.right_child=None
+        self.reunion_timer=0
 
-        :param address: (ip, port)
-        :type address: tuple
-
-        """
         pass
 
     def set_parent(self, parent):
+        self.parent=parent
         pass
 
     def set_address(self, new_address):
+        self.address=new_address
         pass
 
     def __reset(self):
+       #self.address=None
+        self.parent=None
         pass
 
     def add_child(self, child):
+
+
         pass
+
+    def number_of_child(self, child):
+        cnt=0
+        if self.right_child is not None : cnt+=1
+        if self.left_child  is not None : cnt+=1
+        return cnt
+
+
+
 
 
 class NetworkGraph:
     def __init__(self, root):
         self.root = root
         root.alive = True
-        self.nodes = [root]
 
-    def find_live_node(self, sender):
+        self.nodes = {root.address:root}
+
+    def find_live_node(self):
         """
         Here we should find a neighbour for the sender.
-        Best neighbour is the node who is nearest the root and has not more than one child.
+        Best neighbour is the node who is nearest to the root and has not more than one child.
 
         Code design suggestion:
             1. Do a BFS algorithm to find the target.
@@ -48,18 +66,53 @@ class NetworkGraph:
         :return: Best neighbour for sender.
         :rtype: GraphNode
         """
+
+        #FIXME bayad sender o check konim ke too graph nabashe? age bood chikar konim
+
+        frontier= collections.deque()
+        head = self.root
+
+        while(head.number_of_child ==2):
+            tmp = frontier.popleft()
+            frontier.append( tmp.left_child  )
+            frontier.append( tmp.right_child )
+            head=frontier.popleft()
+            frontier.appendleft(head)
+
+        return head
+
+
+
         pass
 
     def find_node(self, ip, port):
+
+        return self.nodes.get((ip,port))
+
         pass
 
     def turn_on_node(self, node_address):
+        #FIXME
         pass
 
     def turn_off_node(self, node_address):
+        #FIXME
         pass
 
     def remove_node(self, node_address):
+
+        hazfi=self.nodes.get(node_address)
+        hazfi.parent=None
+        self.nodes.pop(hazfi.address)
+
+        if(hazfi.left_child!=None):
+            self.remove_node(hazfi.left_child)
+
+        if (hazfi.right_child != None):
+            self.remove_node(hazfi.right_child)
+
+
+
         pass
 
     def add_node(self, ip, port, father_address):
@@ -69,6 +122,8 @@ class NetworkGraph:
         Warnings:
             1. Don't forget to set the new node as one of the father_address children.
             2. Before using this function make sure that there is a node which has father_address.
+
+            #FIXME wtf father node
 
         :param ip: IP address of the new node.
         :param port: Port of the new node.
@@ -82,3 +137,29 @@ class NetworkGraph:
         :return:
         """
         pass
+
+        if  self.nodes.keys().__contains__((ip,port)):
+            return False
+
+        if self.nodes[father_address].number_of_child()==2:
+            return False
+
+
+
+
+        else:
+            new_node=GraphNode((ip,port))
+            self.nodes[(ip,port)]=new_node
+            new_node.parent=father_address
+
+            if self.nodes[father_address].left_child is not None:
+                self.nodes[father_address].left_child =new_node
+
+            else:
+                self.nodes[father_address].right_child=new_node
+
+            return True
+
+
+
+
