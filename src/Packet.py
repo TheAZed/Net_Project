@@ -178,7 +178,6 @@
             
     
 """
-from struct import *
 
 import struct
 
@@ -396,7 +395,7 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_register_packet(type, source_server_address, address=(None, None),ACK=False):
+    def new_register_packet(type, source_server_address, address=(None, None)):
         """
         #FIXME It should be possible to set ACK for RES type. For example and registered client tries to register via sending a register pack , root should be able to send an ACK=False respond register packet
         #TODO FIX it
@@ -427,7 +426,7 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_message_packet(message: object, source_server_address: object) -> object:
+    def new_message_packet(message,  source_server_address):
         """
         Packet for sending a broadcast message to the whole network.
 
@@ -438,7 +437,7 @@ class PacketFactory:
         :type source_server_address: tuple
 
         :return New Message packet.
-        :rtype Packet
+        :rtype: Packet
         """
         packet = Packet(None, 1, 4, len(message), source_server_address[0], source_server_address[1], message)
         return packet

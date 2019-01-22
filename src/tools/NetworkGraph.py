@@ -5,41 +5,37 @@ import collections
 
 class GraphNode:
     def __init__(self, address):
-        self.address=address
-        self.parent=None
-        self.left_child=None
-        self.right_child=None
-        self.reunion_timer=0
-        self.alive=True
+        self.address = address
+        self.parent = None
+        self.left_child = None
+        self.right_child = None
+        self.reunion_timer = 0
+        self.alive = True
 
         pass
 
     def set_parent(self, parent):
-        self.parent=parent
+        self.parent = parent
         pass
 
     def set_address(self, new_address):
-        self.address=new_address
+        self.address = new_address
         pass
 
     def __reset(self):
-       #self.address=None
-        self.parent=None
+        # self.address=None
+        self.parent = None
         pass
 
     def add_child(self, child):
 
-
         pass
 
     def number_of_child(self, child):
-        cnt=0
-        if self.right_child is not None : cnt+=1
-        if self.left_child  is not None : cnt+=1
+        cnt = 0
+        if self.right_child is not None: cnt += 1
+        if self.left_child is not None: cnt += 1
         return cnt
-
-
-
 
 
 class NetworkGraph:
@@ -47,7 +43,7 @@ class NetworkGraph:
         self.root = root
         root.alive = True
 
-        self.nodes = {root.address:root}
+        self.nodes = {root.address: root}
 
     def find_live_node(self):
         """
@@ -61,33 +57,28 @@ class NetworkGraph:
             1. Check whether there is sender node in our NetworkGraph or not; if exist do not return sender node or
                any other nodes in it's sub-tree.
 
-        :param sender: The node address we want to find best neighbour for it.
-        :type sender: tuple
 
         :return: Best neighbour for sender.
         :rtype: GraphNode
         """
 
-
-        frontier= collections.deque()
+        frontier = collections.deque()
         head = self.root
 
-        while(head.number_of_child ==2):
+        while (head.number_of_child == 2):
             tmp = frontier.popleft()
-            frontier.append( tmp.left_child  )
-            frontier.append( tmp.right_child )
-            head=frontier.popleft()
+            frontier.append(tmp.left_child)
+            frontier.append(tmp.right_child)
+            head = frontier.popleft()
             frontier.appendleft(head)
 
         return head
-
-
 
         pass
 
     def find_node(self, ip, port):
 
-        return self.nodes.get((ip,port))
+        return self.nodes.get((ip, port))
 
         pass
 
@@ -102,12 +93,10 @@ class NetworkGraph:
         turned_off_node = self.nodes.get(node_address)
         turned_off_node.parent = None
 
-
-
-        if turned_off_node.left_child != None:
+        if turned_off_node.left_child is not None:
             self.turn_off_node(turned_off_node.left_child)
 
-        if (turned_off_node.right_child != None):
+        if turned_off_node.right_child is not None:
             self.turn_off_node(turned_off_node.right_child)
 
         turned_off_node.left_child = None
@@ -117,19 +106,23 @@ class NetworkGraph:
 
     def remove_node(self, node_address):
 
-        hazfi=self.nodes.get(node_address)
-        hazfi.parent=None
-        self.nodes.pop(hazfi.address)
+        removed_node = self.nodes.get(node_address)
+        if removed_node is not None:
+            removed_node.parent = None
+            self.nodes.pop(removed_node.address)
 
-        if(hazfi.left_child!=None):
-            self.remove_node(hazfi.left_child)
+            if removed_node.left_child is not None:
+                self.remove_node(removed_node.left_child)
 
-        if (hazfi.right_child != None):
-            self.remove_node(hazfi.right_child)
-
-
+            if removed_node.right_child is not None:
+                self.remove_node(removed_node.right_child)
 
         pass
+
+    def restart_node(self, node_address, parent_node):
+        the_node = self.find_node(node_address[0], node_address[1])
+        self.remove_node(the_node)
+        self.add_node(the_node.address[0], the_node.address[1], parent_node.address)
 
     def add_node(self, ip, port, father_address):
 
@@ -154,19 +147,12 @@ class NetworkGraph:
         :return:
         """
 
-
-        new_node=GraphNode((ip,port))
-        self.nodes[(ip,port)]=new_node
-        new_node.parent=father_address
+        new_node = GraphNode((ip, port))
+        self.nodes[(ip, port)] = new_node
+        new_node.parent = father_address
 
         if self.nodes[father_address].left_child is not None:
-            self.nodes[father_address].left_child =new_node
+            self.nodes[father_address].left_child = new_node
 
         else:
-            self.nodes[father_address].right_child=new_node
-
-
-
-
-
-
+            self.nodes[father_address].right_child = new_node

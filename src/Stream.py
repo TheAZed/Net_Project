@@ -1,7 +1,6 @@
 from src.tools.simpletcp.tcpserver import TCPServer
 
 from src.tools.Node import Node
-import threading
 
 
 class Stream:
@@ -71,9 +70,13 @@ class Stream:
         :return:
         """
         # FIXME when should a node be marked as root?
+        if self.get_node_by_server(server_address[0], server_address[1]) is not None:
+            print("A Node with ip: " + server_address[0] + " and port: " + server_address[1] + " already exists!")
+            return
         try:
             new_node = Node(server_address, set_register=set_register_connection)
         except ConnectionRefusedError:
+            print("This address does not exist in network! " + str(server_address))
             return
         self.nodes.append(new_node)
         pass
