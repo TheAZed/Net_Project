@@ -69,6 +69,7 @@ class Peer:
             self.network_graph = NetworkGraph(root=self.graph_node)
             self.root_ip = self.server_ip
             self.root_port = self.server_port
+            self.state = 'joined'
 
         else:
             self.root_ip = Node.parse_ip(root_address[0])
@@ -160,7 +161,6 @@ class Peer:
         """
 
         while self.life:
-
             # print("@@@ Time %4 =  " + str(self.counter) +
             #       "  /  State = " + self.state +
             #       "  /  connection_timer = " + str(self.connection_timer) +
@@ -176,7 +176,8 @@ class Peer:
                     if self.network_graph.nodes.keys().__contains__(key) \
                             and self.network_graph.nodes[key].reunion_timer > self.time_out:
                         # self.(node_address=self.network_graph.nodes[key].address)
-                        entries_to_remove.append(key)
+                        if key != self.get_server_address():
+                            entries_to_remove.append(key)
                         # TODO belakhare nafahmidam khaje ro
                 for entry in entries_to_remove:
                     self.network_graph.remove_node(entry)
@@ -187,7 +188,7 @@ class Peer:
                 self.right_child = None
                 self.connection_timer = None
                 self.state = 'registered'
-
+                print("Timeout Detected. Sending new Advertise Request!")
                 out_packet = PacketFactory.new_advertise_packet(type='REQ', source_server_address=(
                     self.server_ip, self.server_port))
                 self.stream.add_message_to_out_buff(address=self.get_root_address(), message=out_packet.get_buf())
@@ -205,7 +206,7 @@ class Peer:
 
                 if not self.is_root and self.state == 'joined' and self.connection_timer >= 0 and not self.reunion_on_fly:
                     self.send_reunion_client()
-                    print(" New reunion_packet sent")
+                    # print(" New reunion_packet sent")
 
                 self.stream.clear_in_buff()
                 self.stream.send_out_buf_messages()
@@ -259,6 +260,7 @@ class Peer:
         ms = PacketFactory.new_reunion_packet(type='REQ', source_address=(self.server_ip, self.server_port),
                                               nodes_array=[(self.server_ip, self.server_port)])
         self.stream.add_message_to_out_buff(address=self.parent_address, message=ms.get_buf())
+        print("Sent Reunion Packet to Parent: " + str(self.parent_address))
 
     def send_broadcast_packet(self, broadcast_packet, except_address=None):
 
@@ -276,7 +278,7 @@ class Peer:
 
         :return:
         """
-
+        print("Sending Broadcast Message: " + broadcast_packet.get_body())
         if self.parent_address is not None and self.parent_address != except_address:
             self.stream.add_message_to_out_buff(address=self.parent_address, message=broadcast_packet.get_buf())
             # print("Message packet recieved from "+broadcast_source+"  .  Broadcasted to parent : "+self.parent_address)
@@ -375,11 +377,10 @@ class Peer:
 
         elif not self.is_root and self.state == 'newborn' and packet.get_body()[0:3] == 'RES':
             self.state = 'registered'
-            out_packet = PacketFactory.new_advertise_packet(type='REQ',
-                                                            source_server_address=(self.server_ip, self.server_port))
-            self.stream.add_message_to_out_buff(address=self.get_root_address(), message=out_packet.get_buf())
-            print(" register,RES packet  from root . ACK = " + packet.get_body()[3:6] +
-                  "  recieved . Advertise packet sent to root. ")
+            # out_packet = PacketFactory.new_advertise_packet(type='REQ',
+            #                                                 source_server_address=(self.server_ip, self.server_port))
+            # self.stream.add_message_to_out_buff(address=self.get_root_address(), message=out_packet.get_buf())
+            print(" register,RES packet  from root . ACK = " + packet.get_body()[3:6] + " received.")
         else:
             print("Invalid register packer received!")
 
@@ -415,19 +416,25 @@ class Peer:
 
         if self.is_root and packet.get_body()[0:3] == 'REQ':
 
-            if self.network_graph.nodes.keys().__contains__(packet.get_source_server_address()) and \
-                    self.network_graph.nodes[packet.get_source_server_address()].alive:
-                print(" REQ Advertised packet recieved . dropped because it's already in graph node and turned on")
+            if not self.__check_registered(packet.get_source_server_address()):
+                print("Unregistered Advertise Packet Received!")
                 return
 
-            father = self.network_graph.find_live_node()
+            # IT SEEMS WE HAVE TO RESET THE NODE EVERY TIME A DUPLICATE ADVERTISE IS RECEIVED
 
-            if not self.network_graph.nodes.keys().__contains__(packet.get_source_server_address()):
+            # if self.network_graph.nodes.keys().__contains__(packet.get_source_server_address()) and \
+            #         self.network_graph.nodes[packet.get_source_server_address()].alive:
+            #     print(" REQ Advertised packet recieved . dropped because it's already in graph node and turned on")
+            #     return
+
+            if packet.get_source_server_address() in self.network_graph.nodes.keys():
+                print("Received Dup Advertise. Resetting Client: " + str(packet.get_source_server_address()))
+                father = self.network_graph.restart_node(packet.get_source_server_address())
+            else:
+                father = self.network_graph.find_live_node()
                 self.network_graph.add_node(ip=packet.get_source_server_address()[0],
                                             port=packet.get_source_server_address()[1], father_address=father.address)
                 self.network_graph.turn_on_node(packet.get_source_server_address())
-            else:
-                self.network_graph.restart_node(packet.get_source_server_address(), father)
 
             out_packet = PacketFactory.new_advertise_packet(type='RES', source_server_address=self.get_server_address(),
                                                             neighbour=father.address)
@@ -530,7 +537,7 @@ class Peer:
             print("Reunion,REQ packet from client : " + str(node_list[len(node_list) - 1]) +
                   "  .  Node.reunion_timer in network_graph reseted to 0 successfully and RES reunion sent to client.")
 
-        if not self.is_root and packet.type == 'REQ':
+        if not self.is_root and body[0:3] == 'REQ':
 
             if not self.state == 'joined':
                 print("Reunion,REQ packet received from client : " + str(packet.get_source_server_address()) +
@@ -543,13 +550,13 @@ class Peer:
 
             node_list.append((self.server_ip, self.server_port))
 
-            ms = PacketFactory.new_reunion_packet(source_address=packet.get_source_server_address(), type='REQ',
+            ms = PacketFactory.new_reunion_packet(source_address=self.get_server_address(), type='REQ',
                                                   nodes_array=node_list).get_buf()
             self.stream.add_message_to_out_buff(address=self.parent_address, message=ms)
             print("Reunion REQ packet received from client : " + str(packet.get_source_server_address()) +
                   "  and successfully directed to parent :  " + str(self.parent_address))
 
-        if not self.is_root and packet.type == 'RES':
+        if not self.is_root and body[0:3] == 'RES':
             if not self.state == 'joined':
                 print("Reunion RES packet recieved from client : " + str(packet.get_source_server_address()) +
                       " .  But you are not joined thus reunion packet is dropped .")
@@ -569,7 +576,7 @@ class Peer:
                 for i in range(1, int(body[3:5])):
                     node_list.append((body[5 + 20 * i:20 + 20 * i], body[20 + 20 * i:25 + 20 * i]))
 
-                ms = PacketFactory.new_reunion_packet(source_address=packet.get_source_server_address(),
+                ms = PacketFactory.new_reunion_packet(source_address=self.get_server_address(),
                                                       type='RES', nodes_array=node_list).get_buf()
 
                 if self.left_child is not None and body[25:40] == self.left_child[0] and body[40:45] == \

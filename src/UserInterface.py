@@ -4,15 +4,15 @@ from tkinter import Frame, Button, Tk, Entry, Label
 
 class Application(Frame):
     def advertise(self):
-        self.__buffer.append('advertise')
+        self.__buffer.append('Advertise')
         self.output['text'] = 'advertise sent!'
 
     def register(self):
-        self.__buffer.append('register')
+        self.__buffer.append('Register')
         self.output['text'] = 'register sent!'
 
     def send_message(self):
-        self.__buffer.append('send message ' + self.input.get())
+        self.__buffer.append('SendMessage ' + self.input.get())
         self.output['text'] = 'message sent!'
 
     def createWidgets(self):
@@ -23,12 +23,12 @@ class Application(Frame):
         self.advertise_button = Button(self)
         self.advertise_button["text"] = "Advertise"
         self.advertise_button["command"] = self.advertise
-        self.advertise_button.grid(row=1, column=0)
+        self.advertise_button.grid(row=1, column=2)
 
         self.register_button = Button(self)
         self.register_button["text"] = "Register"
         self.register_button["command"] = self.register
-        self.register_button.grid(row=1, column=2)
+        self.register_button.grid(row=1, column=0)
 
         self.input = Entry(self)
         self.input.grid(row=1, column=5, columnspan=4)

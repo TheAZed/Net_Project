@@ -167,6 +167,7 @@ class Stream:
             self.remove_node(node)
         except ValueError:
             # FIXME might wanna do sth
+            print("Sth Went Wrong")
             pass
         pass
 
