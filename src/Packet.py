@@ -197,10 +197,11 @@ class Packet:
         if buf is not None:
             self.buf = buf
             data = struct.unpack('!hhl4hl', bytes(buf[:20]))
+            # print(data)
             self.version = data[0]
             self.type = data[1]
             self.length = data[2]
-            ip_str_list = [chr(i) for i in data[3:7]]
+            ip_str_list = [str(i) for i in data[3:7]]
             ip_str = ip_str_list[0] + '.' + ip_str_list[1] + '.' + ip_str_list[2] + '.' + ip_str_list[3]
             self.source_server_ip = Node.parse_ip(ip_str)
             self.source_server_port = Node.parse_port(str(data[7]))
@@ -336,7 +337,7 @@ class PacketFactory:
         """
         packet_body = ''
         packet_body += type
-        packet_body += str(len(nodes_array)).zfill(width=2)
+        packet_body += str(len(nodes_array)).zfill(2)
         for address in nodes_array:
             packet_body += Node.parse_ip(address[0])
             packet_body += Node.parse_port(address[1])

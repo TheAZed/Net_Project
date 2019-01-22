@@ -1,8 +1,15 @@
 from src.Peer import Peer
+#
+# if __name__ == "__main__":
+#     server = Peer("127.0.0.1", 10000, is_root=True)
+#     server.run()
+#
+#     # client = Peer("127.0.0.1", 10001, is_root=False, root_address=("127.0.0.1", 10000))
+# print("RUNNINGNNGNGNNGNG")
 
-if __name__ == "__main__":
-    server = Peer("insert IP Address", "Insert Port as Int", is_root=True)
-    server.run()
-
-    client = Peer("Insert IP Address", "Insert Port as Int", is_root=False,
-                  root_address=("Insert IP Address", "Insert Port as Int"))
+peer_type = str(input("Input type:"))
+port = int(input("Input Port"))
+if peer_type[0] == 'S':
+    server = Peer("127.0.0.1", 10000, is_root=True)
+else:
+    client = Peer("127.0.0.1", port, is_root=False, root_address=("127.0.0.1", 10000))

@@ -1,10 +1,10 @@
 from src.tools.simpletcp.tcpserver import TCPServer
 
 from src.tools.Node import Node
+import threading
 
 
 class Stream:
-
     def __init__(self, ip, port):
         """
         The Stream object constructor.
@@ -35,7 +35,8 @@ class Stream:
             self._server_in_buf.append(data)
 
         self.tcp_server = TCPServer(self.ip, int(self.port), callback)
-        self.tcp_server.run()
+        self.server_thread = threading.Thread(target=self.tcp_server.run)
+        self.server_thread.start()
 
         self.nodes = []
         pass
@@ -57,7 +58,7 @@ class Stream:
         self._server_in_buf.clear()
 
     def add_node(self, server_address: object, set_register_connection: object = False) -> object:
-        #FIXME check kon age ba in adress node dashtim moshkel pish naiad o node dobare alaki nasaze
+        # FIXME check kon age ba in adress node dashtim moshkel pish naiad o node dobare alaki nasaze
         """
         Will add new a node to our Stream.
 

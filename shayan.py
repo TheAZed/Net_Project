@@ -1,9 +1,4 @@
-#a="fdafad ;lkjn    fdfd slslsl sl    hbddas"
-#print(a.split())
+from src.Packet import *
 
-
-a=('fdfdasfas','31212')
-
-print("dafda  "+str(a))
-
-print("yechize jadid")
+packet = PacketFactory.new_advertise_packet("RES",("127.000.000.001", "05356"), ("127.000.000.001", "31315"))
+print(packet.get_buf())
