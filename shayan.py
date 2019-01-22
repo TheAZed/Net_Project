@@ -5,3 +5,5 @@
 a=('fdfdasfas','31212')
 
 print("dafda  "+str(a))
+
+print("yechize jadid")
