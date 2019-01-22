@@ -10,6 +10,7 @@ class GraphNode:
         self.left_child=None
         self.right_child=None
         self.reunion_timer=0
+        self.alive=True
 
         pass
 
@@ -67,7 +68,6 @@ class NetworkGraph:
         :rtype: GraphNode
         """
 
-        #FIXME bayad sender o check konim ke too graph nabashe? age bood chikar konim
 
         frontier= collections.deque()
         head = self.root
@@ -92,11 +92,27 @@ class NetworkGraph:
         pass
 
     def turn_on_node(self, node_address):
-        #FIXME
+        self.nodes[node_address].alive = True
+
         pass
 
     def turn_off_node(self, node_address):
-        #FIXME
+        self.nodes[node_address].alive = False
+
+        turned_off_node = self.nodes.get(node_address)
+        turned_off_node.parent = None
+
+
+
+        if turned_off_node.left_child != None:
+            self.turn_off_node(turned_off_node.left_child)
+
+        if (turned_off_node.right_child != None):
+            self.turn_off_node(turned_off_node.right_child)
+
+        turned_off_node.left_child = None
+        turned_off_node.right_child = None
+
         pass
 
     def remove_node(self, node_address):
@@ -116,6 +132,7 @@ class NetworkGraph:
         pass
 
     def add_node(self, ip, port, father_address):
+
         """
         Add a new node with node_address if it does not exist in our NetworkGraph and set its father.
 
@@ -123,7 +140,7 @@ class NetworkGraph:
             1. Don't forget to set the new node as one of the father_address children.
             2. Before using this function make sure that there is a node which has father_address.
 
-            #FIXME wtf father node
+
 
         :param ip: IP address of the new node.
         :param port: Port of the new node.
@@ -136,29 +153,19 @@ class NetworkGraph:
 
         :return:
         """
-        pass
-
-        if  self.nodes.keys().__contains__((ip,port)):
-            return False
-
-        if self.nodes[father_address].number_of_child()==2:
-            return False
 
 
+        new_node=GraphNode((ip,port))
+        self.nodes[(ip,port)]=new_node
+        new_node.parent=father_address
 
+        if self.nodes[father_address].left_child is not None:
+            self.nodes[father_address].left_child =new_node
 
         else:
-            new_node=GraphNode((ip,port))
-            self.nodes[(ip,port)]=new_node
-            new_node.parent=father_address
+            self.nodes[father_address].right_child=new_node
 
-            if self.nodes[father_address].left_child is not None:
-                self.nodes[father_address].left_child =new_node
 
-            else:
-                self.nodes[father_address].right_child=new_node
-
-            return True
 
 
 

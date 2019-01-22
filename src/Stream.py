@@ -58,6 +58,7 @@ class Stream:
         self._server_in_buf.clear()
 
     def add_node(self, server_address: object, set_register_connection: object = False) -> object:
+        #FIXME check kon age ba in adress node dashtim moshkel pish naiad o node dobare alaki nasaze
         """
         Will add new a node to our Stream.
 

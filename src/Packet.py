@@ -396,8 +396,10 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_register_packet(type, source_server_address, address=(None, None)):
+    def new_register_packet(type, source_server_address, address=(None, None),ACK=False):
         """
+        #FIXME It should be possible to set ACK for RES type. For example and registered client tries to register via sending a register pack , root should be able to send an ACK=False respond register packet
+        #TODO FIX it
         :param type: Type of Register packet - Either 'REQ' or 'RES'
         :param source_server_address: Server address of the packet sender.
         :param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
@@ -425,7 +427,7 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_message_packet(message, source_server_address):
+    def new_message_packet(message: object, source_server_address: object) -> object:
         """
         Packet for sending a broadcast message to the whole network.
 

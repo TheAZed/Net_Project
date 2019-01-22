@@ -1,5 +1,7 @@
-a=[]
-a.append((1,2))
-a.append((3,4))
-a.reverse()
-print(a)
+#a="fdafad ;lkjn    fdfd slslsl sl    hbddas"
+#print(a.split())
+
+
+a=('fdfdasfas','31212')
+
+print("dafda  "+str(a))
