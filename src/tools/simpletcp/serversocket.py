@@ -81,12 +81,13 @@ class ServerSocket:
                     try:
                         data = sock.recv(self.received_bytes)
                     except socket.error as e:
-                        if e.errno is errno.ECONNRESET:
-                            # Consider 'Connection reset by peer'
-                            # the same as reading zero bytes
-                            data = None
-                        else:
-                            raise e
+                        # if e.errno is errno.ECONNRESET:
+                        #     # Consider 'Connection reset by peer'
+                        #     # the same as reading zero bytes
+                        #     data = None
+                        # else:
+                        #     raise e
+                        data = None
                     if data:
                         # Call the callback
                         self.callback(IPs[sock], queues[sock], data)

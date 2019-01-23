@@ -183,11 +183,7 @@ class Peer:
                     self.network_graph.remove_node(entry)
 
             if not self.is_root and self.connection_timer is not None and self.connection_timer > self.time_out:
-                self.parent_address = None
-                self.left_child = None
-                self.right_child = None
-                self.connection_timer = None
-                self.state = 'registered'
+                self.deep_disconnect()
                 print("Timeout Detected. Sending new Advertise Request!")
                 out_packet = PacketFactory.new_advertise_packet(type='REQ', source_server_address=(
                     self.server_ip, self.server_port))
@@ -209,7 +205,27 @@ class Peer:
                     # print(" New reunion_packet sent")
 
                 self.stream.clear_in_buff()
-                self.stream.send_out_buf_messages()
+                problematic_nodes = self.stream.send_out_buf_messages()
+                for node in problematic_nodes:
+                    if not node.is_root and node.get_server_address() != self.get_root_address():
+                        print("Removing problematic node: " + str(node.get_server_address()))
+                        if self.is_root:
+                            self.network_graph.remove_node(node.get_server_address())
+                        self.stream.remove_node(node)
+                        if self.left_child == node.get_server_address():
+                            self.left_child = None
+                        elif self.right_child == node.get_server_address():
+                            self.right_child = None
+                        elif self.parent_address == node.get_server_address():
+                            self.deep_disconnect()
+                            print("Disconnection Detected. Sending new Advertise Request!")
+                            out_packet = PacketFactory.new_advertise_packet(type='REQ', source_server_address=(
+                                self.server_ip, self.server_port))
+                            self.stream.add_message_to_out_buff(self.get_root_address(), out_packet.get_buf())
+
+                    else:
+                        print("Sir we're facing a dire situation. it seems the HQ is taken down and we've lost the war")
+                        exit(0)
 
             self.counter += 1
             if self.counter == 4:
@@ -691,3 +707,24 @@ class Peer:
 
     def get_server_address(self):
         return self.server_ip, self.server_port
+
+    def deep_disconnect(self):
+        self.reunion_on_fly = False
+        if self.parent_address is not None:
+            node = self.stream.get_node_by_server(self.parent_address[0], self.parent_address[1])
+            if node is not None:
+                self.stream.remove_node(node)
+            self.parent_address = None
+        if self.left_child is not None:
+            node = self.stream.get_node_by_server(self.left_child[0], self.left_child[1])
+            if node is not None:
+                self.stream.remove_node(node)
+            self.left_child = None
+        if self.right_child is not None:
+            node = self.stream.get_node_by_server(self.right_child[0], self.right_child[1])
+            if node is not None:
+                self.stream.remove_node(node)
+            self.right_child = None
+        self.connection_timer = None
+        self.state = 'registered'
+

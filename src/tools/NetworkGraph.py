@@ -65,7 +65,7 @@ class NetworkGraph:
         frontier = collections.deque()
         head = self.root
         frontier.append(head)
-        while head.number_of_child() == 2:
+        while head.number_of_child() == 2 or head is None:
             tmp = frontier.popleft()
             frontier.append(tmp.left_child)
             frontier.append(tmp.right_child)
@@ -109,26 +109,27 @@ class NetworkGraph:
         removed_node = self.nodes.get(node_address)
         if removed_node.parent is not None:
             parent_node = self.nodes[removed_node.parent]
-            if parent_node.left_child == node_address:
+            if parent_node.left_child.address == node_address:
                 parent_node.left_child = None
-            elif parent_node.right_child == node_address:
+            elif parent_node.right_child.address == node_address:
                 parent_node.right_child = None
 
         if removed_node is not None:
-            removed_node.parent = None
-            self.nodes.pop(removed_node.address)
 
             if removed_node.left_child is not None:
-                self.remove_node(removed_node.left_child)
+                self.remove_node(removed_node.left_child.address)
 
             if removed_node.right_child is not None:
-                self.remove_node(removed_node.right_child)
+                self.remove_node(removed_node.right_child.address)
+            self.nodes.pop(removed_node.address)
+            removed_node.parent = None
 
         pass
 
     def restart_node(self, node_address):
         the_node = self.find_node(node_address[0], node_address[1])
-        self.remove_node(the_node)
+        if the_node is not None:
+            self.remove_node(the_node.address)
         parent_node = self.find_live_node()
         self.add_node(the_node.address[0], the_node.address[1], parent_node.address)
         return parent_node

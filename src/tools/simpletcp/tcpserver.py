@@ -26,10 +26,10 @@ class TCPServer:
         )
 
     def run(self):
-        try:
-            self.server_socket.run()
-        except:
-            print("Server Socket Crashed ....")
+        # try:
+        self.server_socket.run()
+        # except:
+        #     print("Server Socket Crashed ....")
 
     @property
     def ip(self):

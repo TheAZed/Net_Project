@@ -177,11 +177,22 @@ class Stream:
 
         :return:
         """
+        problematic_nodes = []
         if only_register:
             for node in self.nodes:
-                if node.is_register:
-                    self.send_messages_to_node(node)
+                try:
+                    if node.is_register:
+                        self.send_messages_to_node(node)
+                except ConnectionResetError:
+                    # print("A Node seems to be out of reach: " + str(node.get_server_address()))
+                    problematic_nodes.append(node)
+
         else:
             for node in self.nodes:
-                self.send_messages_to_node(node)
+                try:
+                    self.send_messages_to_node(node)
+                except ConnectionResetError:
+                    # print("A Node seems to be out of reach: " + str(node.get_server_address()))
+                    problematic_nodes.append(node)
+        return problematic_nodes
         pass
