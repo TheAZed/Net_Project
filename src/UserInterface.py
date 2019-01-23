@@ -53,7 +53,14 @@ class UserInterface(threading.Thread):
         Which the user or client sees and works with.
         This method runs every time to see whether there are new messages or not.
         """
-        root = Tk()
-        app = Application(root, self.buffer)
-        app.mainloop()
-        root.destroy()
+
+
+        # root = Tk()
+        # app = Application(root, self.buffer)
+        # app.mainloop()
+        # root.destroy()
+
+        while True:
+            self.buffer.append(input("?"))
+
+
