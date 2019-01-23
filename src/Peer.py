@@ -4,7 +4,7 @@ from src.UserInterface import UserInterface
 from src.tools.Node import Node
 from src.tools.NetworkGraph import NetworkGraph, GraphNode
 import time
-import copy
+
 
 """
     Peer is our main object in this project.
@@ -181,6 +181,7 @@ class Peer:
                         # TODO belakhare nafahmidam khaje ro
                 for entry in entries_to_remove:
                     self.network_graph.remove_node(entry)
+                    self.remove_from_neighbors(entry)
 
             if not self.is_root and self.connection_timer is not None and self.connection_timer > self.time_out:
                 self.deep_disconnect()
@@ -190,7 +191,7 @@ class Peer:
                 self.stream.add_message_to_out_buff(address=self.get_root_address(), message=out_packet.get_buf())
 
             if self.counter == 2 or self.counter == 0:
-                self.handle_user_interface_buffer()
+
                 buffs = self.stream.read_in_buf()
                 packs = []
 
@@ -226,6 +227,7 @@ class Peer:
                     else:
                         print("Sir we're facing a dire situation. it seems the HQ is taken down and we've lost the war")
                         exit(0)
+                self.handle_user_interface_buffer()
 
             self.counter += 1
             if self.counter == 4:
@@ -727,4 +729,22 @@ class Peer:
             self.right_child = None
         self.connection_timer = None
         self.state = 'registered'
+
+    def remove_from_neighbors(self, entry):
+        if self.parent_address is not None:
+            node = self.stream.get_node_by_server(self.parent_address[0], self.parent_address[1])
+            if node is not None and node.get_server_address() == entry:
+                self.stream.remove_node(node)
+                self.parent_address = None
+                self.deep_disconnect()
+        if self.left_child is not None:
+            node = self.stream.get_node_by_server(self.left_child[0], self.left_child[1])
+            if node is not None and node.get_server_address() == entry:
+                self.stream.remove_node(node)
+                self.left_child = None
+        if self.right_child is not None:
+            node = self.stream.get_node_by_server(self.right_child[0], self.right_child[1])
+            if node is not None and node.get_server_address() == entry:
+                self.stream.remove_node(node)
+                self.right_child = None
 

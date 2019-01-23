@@ -136,7 +136,10 @@ class Stream:
         :return:
         """
         node = self.get_node_by_server(address[0], address[1])
-        node.add_message_to_out_buff(message)
+        try:
+            node.add_message_to_out_buff(message)
+        except:
+            pass
         pass
 
     def read_in_buf(self):
