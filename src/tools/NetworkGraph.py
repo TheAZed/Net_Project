@@ -109,9 +109,9 @@ class NetworkGraph:
         removed_node = self.nodes.get(node_address)
         if removed_node.parent is not None:
             parent_node = self.nodes[removed_node.parent]
-            if parent_node.left_child.address == node_address:
+            if parent_node.left_child is not None and parent_node.left_child.address == node_address:
                 parent_node.left_child = None
-            elif parent_node.right_child.address == node_address:
+            elif parent_node.right_child is not None and parent_node.right_child.address == node_address:
                 parent_node.right_child = None
 
         if removed_node is not None:

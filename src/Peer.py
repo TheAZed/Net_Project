@@ -188,7 +188,7 @@ class Peer:
                         # self.(node_address=self.network_graph.nodes[key].address)
                         if key != self.get_server_address():
                             entries_to_remove.append(key)
-                            print("Client  "+key+"  was removed due to timeout . ")
+                            print("Client  " + str(key) + "  was removed due to timeout . ")
                         #TODO khaje procedure :  We decided to remove any node which it's reunion packet is timeout. Note that it's children also will be removed.
                 for entry in entries_to_remove:
                     self.network_graph.remove_node(entry)
